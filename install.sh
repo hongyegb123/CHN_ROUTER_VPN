@@ -1,6 +1,6 @@
 #! /bin/bash
-PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
-export PATH
+#PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+#export PATH
 #===============================================================================================
 #   System Required:  CentOS6.x (32bit/64bit) or Ubuntu
 #   Description:  Install CHN ROUTE VPN for CentOS and Ubuntu
@@ -22,10 +22,10 @@ function install_CHN_ROUTE_VPN()
 {
     rootness
     disable_selinux
-    get_my_ip
+#    get_my_ip
     get_system
     pre_install
-    install_ss_libev
+#    install_ss_libev
     install_strongswan
     set_iptables
 }
@@ -61,21 +61,21 @@ function get_my_ip()
 # Ubuntu or CentOS
 function get_system()
 {
-    get_system_str=`cat /etc/issue`
-    echo "$get_system_str" |grep -q "CentOS"
-    if  [ $? -eq 0 ]
-    then
-        system_str="0"
-    else
-        echo "$get_system_str" |grep -q "Ubuntu"
-        if [ $? -eq 0 ]
-        then
-            system_str="1"
-        else
-            echo "This Script must be running at the CentOS or Ubuntu!"
-            exit 1
-        fi
-    fi  
+    local get_system_str=`awk 'NR==1{print $1}' /etc/issue.net`
+    case $get_system_str in
+		CentOS)
+			system_str="0"
+			break
+			;;
+		Ubuntu)
+			system_str="1"
+			break
+			;;
+		*)
+			echo "This Script must be running at the CentOS or Ubuntu!"
+			exit 1
+			;;
+	esac
 }
 
 # Pre-installation settings
@@ -108,7 +108,7 @@ function pre_install()
         echo "Please input name of public network:"
         read -p "(Default eth0):" ethX
         if [ "$ethX" = "" ]; then
-            ethX="eth0"
+            ethX="eth1"
         fi
     fi
     echo ""
@@ -133,7 +133,7 @@ function pre_install()
     echo "please input the ip (or domain) of your China VPS:"
     read -p "ip or domain(default_vale:${IP}):" vps_ip
     if [ "$vps_ip" = "" ]; then
-        vps_ip=$IP
+        vps_ip=`ifconfig  $ethX | grep 'inet addr:' | cut -d: -f2 | awk 'NR==1 { print $1}'`
     fi
     echo ""
     echo "please input the cert country(C):"
@@ -161,7 +161,7 @@ function pre_install()
         yum -y install python python-devel python-setuptools autoconf libtool libevent
         yum -y install automake make curl curl-devel zlib-devel 
         yum -y install perl perl-devel cpio expat-devel gettext-devel
-    else
+    else if [ "$system_str" = "1" ]
         apt-get -y update
         apt-get -y install libpam0g-dev libssl-dev make gcc wget 
         apt-get -y install unzip curl build-essential autoconf libtool
